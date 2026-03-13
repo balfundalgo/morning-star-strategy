@@ -32,41 +32,41 @@ jobs:
       - name: Create placeholder .env
         shell: pwsh
         run: |
-          Set-Content -Path ".env" -Value "DHAN_CLIENT_ID=`nDHAN_PIN=`nDHAN_TOTP_SECRET=`nDHAN_ACCESS_TOKEN=`nDHAN_TOKEN_EXPIRY="
-          Write-Host ".env created"
+          Set-Content -Path ".env" -Value "DHAN_CLIENT_ID="
 
-      - name: Write PyInstaller spec
+      - name: Write spec and build EXE
         shell: pwsh
         run: |
-          $spec = @"
+          python -c "
+          spec = '''
 block_cipher = None
 a = Analysis(
-    ['gui_app.py'],
-    pathex=['.'],
+    [\"gui_app.py\"],
+    pathex=[\".\"],
     binaries=[],
-    datas=[('.env', '.')],
+    datas=[(\".env\", \".\")],
     hiddenimports=[
-        'customtkinter',
-        'dhanhq',
-        'pyotp',
-        'schedule',
-        'websocket',
-        'websocket._app',
-        'websocket._core',
-        'pandas',
-        'pytz',
-        'dotenv',
-        'requests',
-        'PIL',
-        'PIL._tkinter_finder',
-        'config',
-        'pattern_detector',
-        'session_guard',
-        'strike_selector',
-        'order_manager',
-        'trade_tracker',
-        'dhan_token_manager',
-        'main',
+        \"customtkinter\",
+        \"dhanhq\",
+        \"pyotp\",
+        \"schedule\",
+        \"websocket\",
+        \"websocket._app\",
+        \"websocket._core\",
+        \"pandas\",
+        \"pytz\",
+        \"dotenv\",
+        \"requests\",
+        \"PIL\",
+        \"PIL._tkinter_finder\",
+        \"config\",
+        \"pattern_detector\",
+        \"session_guard\",
+        \"strike_selector\",
+        \"order_manager\",
+        \"trade_tracker\",
+        \"dhan_token_manager\",
+        \"main\",
     ],
     hookspath=[],
     runtime_hooks=[],
@@ -77,21 +77,17 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [],
-    name='MorningStarStrategy',
+    name=\"MorningStarStrategy\",
     debug=False,
     strip=False,
     upx=True,
     console=False,
     runtime_tmpdir=None,
 )
-"@
-          Set-Content -Path "MorningStarStrategy.spec" -Value $spec
-          Write-Host "Spec written successfully"
-          Get-Content "MorningStarStrategy.spec"
-
-      - name: Build EXE with PyInstaller
-        shell: pwsh
-        run: |
+'''
+          open('MorningStarStrategy.spec', 'w').write(spec.strip())
+          print('Spec written OK')
+          "
           pyinstaller MorningStarStrategy.spec --clean
           dir dist\
 
