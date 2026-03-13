@@ -1,0 +1,29 @@
+# ──────────────────────────────────────────────────────
+# Morning Star / Evening Star — NIFTY Options Strategy
+# Python dependencies
+# ──────────────────────────────────────────────────────
+
+# GUI
+customtkinter>=5.2.2
+Pillow>=10.0.0            # Required by customtkinter for image support
+
+# Dhan SDK
+dhanhq>=2.0.0
+
+# Data / numerics
+pandas>=2.0.0
+numpy>=1.26.0
+
+# HTTP / WebSocket
+requests>=2.31.0
+websocket-client>=1.6.0
+
+# Auth / Token
+pyotp>=2.9.0
+python-dotenv>=1.0.0
+
+# Scheduling (token auto-refresh daemon)
+schedule>=1.2.0
+
+# Timezone
+pytz>=2024.1

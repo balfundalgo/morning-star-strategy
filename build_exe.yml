@@ -1,0 +1,162 @@
+# .github/workflows/build_exe.yml
+# ══════════════════════════════════════════════════════════════
+# Builds a Windows EXE using PyInstaller on every push to main
+# and on every version tag (v*).
+#
+# The EXE is:
+#   - uploaded as a GitHub Actions artifact (every push)
+#   - attached as a Release asset (only on v* tags)
+#
+# To trigger a release:
+#   git tag v1.0.0 && git push origin v1.0.0
+# ══════════════════════════════════════════════════════════════
+
+name: 🔨 Build Windows EXE
+
+on:
+  push:
+    branches: [main, master]
+    tags:     ['v*.*.*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:          # allow manual trigger from GitHub UI
+
+jobs:
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────
+      - name: ⬇️  Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ──────────────────────────────────────
+      - name: 🐍  Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Install dependencies ───────────────────────────────
+      - name: 📦  Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # ── 4. Create .env placeholder (so PyInstaller doesn't complain) ──
+      - name: 📝  Create placeholder .env
+        shell: pwsh
+        run: |
+          if (-not (Test-Path ".env")) {
+            @"
+          DHAN_CLIENT_ID=
+          DHAN_PIN=
+          DHAN_TOTP_SECRET=
+          DHAN_ACCESS_TOKEN=
+          DHAN_TOKEN_EXPIRY=
+          "@ | Out-File -FilePath ".env" -Encoding utf8
+          }
+
+      # ── 5. Build EXE ──────────────────────────────────────────
+      - name: 🔨  PyInstaller — Build EXE
+        run: |
+          pyinstaller ^
+            --onefile ^
+            --windowed ^
+            --name "MorningStarStrategy" ^
+            --icon "assets/icon.ico" ^
+            --add-data ".env;." ^
+            --add-data "config.py;." ^
+            --add-data "pattern_detector.py;." ^
+            --add-data "session_guard.py;." ^
+            --add-data "strike_selector.py;." ^
+            --add-data "order_manager.py;." ^
+            --add-data "trade_tracker.py;." ^
+            --add-data "dhan_token_manager.py;." ^
+            --add-data "main.py;." ^
+            --hidden-import "customtkinter" ^
+            --hidden-import "dhanhq" ^
+            --hidden-import "pyotp" ^
+            --hidden-import "schedule" ^
+            --hidden-import "websocket" ^
+            --hidden-import "pandas" ^
+            --hidden-import "pytz" ^
+            --collect-all "customtkinter" ^
+            --collect-all "dhanhq" ^
+            gui_app.py
+        shell: cmd
+
+      # Fallback: if no icon file, build without icon
+      - name: 🔨  PyInstaller — Build EXE (no icon fallback)
+        if: failure()
+        run: |
+          pyinstaller ^
+            --onefile ^
+            --windowed ^
+            --name "MorningStarStrategy" ^
+            --add-data ".env;." ^
+            --add-data "config.py;." ^
+            --add-data "pattern_detector.py;." ^
+            --add-data "session_guard.py;." ^
+            --add-data "strike_selector.py;." ^
+            --add-data "order_manager.py;." ^
+            --add-data "trade_tracker.py;." ^
+            --add-data "dhan_token_manager.py;." ^
+            --add-data "main.py;." ^
+            --hidden-import "customtkinter" ^
+            --hidden-import "dhanhq" ^
+            --hidden-import "pyotp" ^
+            --hidden-import "schedule" ^
+            --hidden-import "websocket" ^
+            --hidden-import "pandas" ^
+            --hidden-import "pytz" ^
+            --collect-all "customtkinter" ^
+            --collect-all "dhanhq" ^
+            gui_app.py
+        shell: cmd
+
+      # ── 6. List build output ──────────────────────────────────
+      - name: 📂  List dist folder
+        run: dir dist\
+        shell: cmd
+
+      # ── 7. Upload artifact (every build) ─────────────────────
+      - name: 📤  Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MorningStarStrategy-Windows-${{ github.sha }}
+          path: dist\MorningStarStrategy.exe
+          retention-days: 30
+
+      # ── 8. Create GitHub Release (only on version tags) ───────
+      - name: 🚀  Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Morning Star Strategy ${{ github.ref_name }}"
+          body: |
+            ## ⭐ Morning Star / Evening Star NIFTY Strategy
+            **Balfund Trading Pvt. Ltd.**
+
+            ### What's in this release
+            - Windows EXE (single file, no Python needed)
+            - Dhan API v2 integration with TOTP token manager
+            - Paper trade + Live trade modes
+            - Morning Star & Evening Star pattern detection on NIFTY 1-min candles
+            - Delta ~0.6 strike auto-selection via Dhan scrip master
+
+            ### First-time Setup
+            1. Run `MorningStarStrategy.exe`
+            2. Go to **Token Manager** tab
+            3. Enter your **Client ID**, **PIN**, and **TOTP Secret**
+            4. Click **Generate Token** → **Save to .env**
+            5. Go to **Dashboard** tab → click **▶ Start Strategy**
+
+            > ⚠️ Start in **Paper Mode** to verify signals before going live.
+          files: dist\MorningStarStrategy.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
