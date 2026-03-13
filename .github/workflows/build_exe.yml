@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -29,38 +32,35 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path ".env")) {
-            @"
-          DHAN_CLIENT_ID=
-          DHAN_PIN=
-          DHAN_TOTP_SECRET=
-          DHAN_ACCESS_TOKEN=
-          DHAN_TOKEN_EXPIRY=
-          "@ | Out-File -FilePath ".env" -Encoding utf8
+            Set-Content -Path ".env" -Value "DHAN_CLIENT_ID=`nDHAN_PIN=`nDHAN_TOTP_SECRET=`nDHAN_ACCESS_TOKEN=`nDHAN_TOKEN_EXPIRY="
           }
 
       - name: Build EXE with PyInstaller
+        shell: pwsh
         run: |
-          pyinstaller --onefile --windowed --name "MorningStarStrategy" ^
-            --add-data ".env;." ^
-            --add-data "config.py;." ^
-            --add-data "pattern_detector.py;." ^
-            --add-data "session_guard.py;." ^
-            --add-data "strike_selector.py;." ^
-            --add-data "order_manager.py;." ^
-            --add-data "trade_tracker.py;." ^
-            --add-data "dhan_token_manager.py;." ^
-            --add-data "main.py;." ^
-            --hidden-import "customtkinter" ^
-            --hidden-import "dhanhq" ^
-            --hidden-import "pyotp" ^
-            --hidden-import "schedule" ^
-            --hidden-import "websocket" ^
-            --hidden-import "pandas" ^
-            --hidden-import "pytz" ^
-            --collect-all "customtkinter" ^
-            --collect-all "dhanhq" ^
+          pyinstaller `
+            --onefile `
+            --windowed `
+            --name "MorningStarStrategy" `
+            --add-data ".env;." `
+            --add-data "config.py;." `
+            --add-data "pattern_detector.py;." `
+            --add-data "session_guard.py;." `
+            --add-data "strike_selector.py;." `
+            --add-data "order_manager.py;." `
+            --add-data "trade_tracker.py;." `
+            --add-data "dhan_token_manager.py;." `
+            --add-data "main.py;." `
+            --hidden-import customtkinter `
+            --hidden-import dhanhq `
+            --hidden-import pyotp `
+            --hidden-import schedule `
+            --hidden-import websocket `
+            --hidden-import pandas `
+            --hidden-import pytz `
+            --collect-all customtkinter `
+            --collect-all dhanhq `
             gui_app.py
-        shell: cmd
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4
